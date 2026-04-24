@@ -1,5 +1,6 @@
 import Bid from "./bid.model.js";
 import RFQ from "../rfq/rfq.model.js";
+import { handleNewBid } from "../auction/auction.service.js";
 
 export const submitBidService = async (data, user) => {
 
@@ -33,6 +34,17 @@ export const submitBidService = async (data, user) => {
     throw error;
   }
 
+  const totalBidAmount =
+    Number(freightCharges) +
+    Number(originCharges) +
+    Number(destinationCharges);
+
+  if (isNaN(totalBidAmount)) {
+    const error = new Error("Invalid numeric values in bid");
+    error.statusCode = 400;
+    throw error;
+  }
+
   const rfq = await RFQ.findById(rfqId);
   if (!rfq) {
     const error = new Error("RFQ not found");
@@ -60,11 +72,6 @@ export const submitBidService = async (data, user) => {
     throw error;
   }
 
-  const totalBidAmount =
-    Number(freightCharges) +
-    Number(originCharges) +
-    Number(destinationCharges);
-
   const lastBid = await Bid.findOne({
     rfqId,
     supplierId: user.userId,
@@ -78,8 +85,7 @@ export const submitBidService = async (data, user) => {
     throw error;
   }
 
-
-  const bid = await Bid.create({
+  const bidPayload = {
     rfqId,
     supplierId: user.userId,
     carrierName,
@@ -89,7 +95,7 @@ export const submitBidService = async (data, user) => {
     totalBidAmount,
     transitTime,
     validityOfQuote,
-  });
+  };
 
-  return bid;
+  return await handleNewBid(rfqId, bidPayload);
 };

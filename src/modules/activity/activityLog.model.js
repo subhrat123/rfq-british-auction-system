@@ -1,0 +1,27 @@
+import mongoose from "mongoose";
+
+const activitySchema = new mongoose.Schema(
+  {
+    rfqId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "RFQ",
+      required: true,
+      index: true,
+    },
+
+    eventType: {
+      type: String,
+      enum: ["bid_submitted", "time_extended", "auction_closed"],
+      required: true,
+    },
+
+    message: String,
+    reason: String,
+
+    previousCloseTime: Date,
+    newCloseTime: Date,
+  },
+  { timestamps: true }
+);
+
+export default mongoose.model("ActivityLog", activitySchema);
