@@ -1,28 +1,61 @@
 import RFQ from "./rfq.model.js";
 
 export const createRFQService = async (data, user) => {
-  if (user.role !== "buyer") {
-    throw new Error("Only buyers can create RFQs");
-  }
+    if (user.role !== "buyer") {
+        const error = new Error("Only buyers can create RFQs");
+        error.statusCode = 403;
+        throw error;
+    }
 
-  if (new Date(data.forcedBidCloseTime) <= new Date(data.bidCloseTime)) {
-    throw new Error("Forced close time must be greater than bid close time");
-  }
+    const {
+        name,
+        referenceId,
+        bidStartTime,
+        bidCloseTime,
+        forcedBidCloseTime,
+        pickupDate,
+    } = data;
 
-  const rfq = await RFQ.create({
-    ...data,
-    buyerId: user.userId,
-  });
+    if (
+        !name ||
+        !referenceId ||
+        !bidStartTime ||
+        !bidCloseTime ||
+        !forcedBidCloseTime ||
+        !pickupDate
+    ) {
+        const error = new Error("All required fields must be provided");
+        error.statusCode = 400;
+        throw error;
+    }
 
-  return rfq;
+    if (new Date(bidStartTime) >= new Date(bidCloseTime)) {
+        const error = new Error("Bid start time must be before bid close time");
+        error.statusCode = 400;
+        throw error;
+    }
+
+
+    if (new Date(data.forcedBidCloseTime) <= new Date(data.bidCloseTime)) {
+        const error = new Error("Forced close time must be greater than bid close time");
+        error.statusCode = 400;
+        throw error;
+    }
+
+    const rfq = await RFQ.create({
+        ...data,
+        buyerId: user.userId,
+    });
+
+    return rfq;
 };
 
 export const getAllRFQsService = async () => {
-  return RFQ.find()
-    .populate("buyerId", "name email")
-    .sort({ createdAt: -1 });
+    return RFQ.find()
+        .populate("buyerId", "name email")
+        .sort({ createdAt: -1 });
 };
 
 export const getRFQByIdService = async (id) => {
-  return RFQ.findById(id).populate("buyerId", "name email");
+    return RFQ.findById(id).populate("buyerId", "name email");
 };

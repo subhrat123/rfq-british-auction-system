@@ -1,6 +1,6 @@
 import { signupService, loginService } from "./auth.service.js";
 
-export const signupController = async (req, res) => {
+export const signupController = async (req, res, next) => {
   try {
     const user = await signupService(req.body);
 
@@ -9,13 +9,11 @@ export const signupController = async (req, res) => {
       data: user,
     });
   } catch (err) {
-    res.status(400).json({
-      message: err.message,
-    });
+    next(err);
   }
 };
 
-export const loginController = async (req, res) => {
+export const loginController = async (req, res, next) => {
   try {
     const result = await loginService(req.body);
 
@@ -25,8 +23,6 @@ export const loginController = async (req, res) => {
       user: result.user,
     });
   } catch (err) {
-    res.status(400).json({
-      message: err.message,
-    });
+    next(err);
   }
 };

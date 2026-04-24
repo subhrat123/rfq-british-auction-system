@@ -4,7 +4,7 @@ import {
   getRFQByIdService,
 } from "./rfq.service.js";
 
-export const createRFQController = async (req, res) => {
+export const createRFQController = async (req, res, next) => {
   try {
     const rfq = await createRFQService(req.body, req.user);
 
@@ -13,13 +13,11 @@ export const createRFQController = async (req, res) => {
       data: rfq,
     });
   } catch (err) {
-    res.status(400).json({
-      message: err.message,
-    });
+    next(err);
   }
 };
 
-export const getRFQsController = async (req, res) => {
+export const getRFQsController = async (req, res, next) => {
   try {
     const rfqs = await getAllRFQsService();
 
@@ -28,20 +26,16 @@ export const getRFQsController = async (req, res) => {
       data: rfqs,
     });
   } catch (err) {
-    res.status(500).json({
-      message: err.message,
-    });
+    next(err);
   }
 };
 
-export const getRFQController = async (req, res) => {
+export const getRFQController = async (req, res, next) => {
   try {
     const rfq = await getRFQByIdService(req.params.id);
 
     if (!rfq) {
-      return res.status(404).json({
-        message: "RFQ not found",
-      });
+      return next(new Error("RFQ not found"));
     }
 
     res.status(200).json({
@@ -49,8 +43,6 @@ export const getRFQController = async (req, res) => {
       data: rfq,
     });
   } catch (err) {
-    res.status(500).json({
-      message: err.message,
-    });
+    next(err);
   }
 };
