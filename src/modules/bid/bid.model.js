@@ -1,5 +1,7 @@
 import mongoose from "mongoose";
 
+// Each bid represents a supplier's offer in an RFQ auction
+// Multiple bids per supplier are allowed (append-only design)
 const bidSchema = new mongoose.Schema(
   {
     rfqId: {

@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 
+// Stores configurable auction behavior (trigger window, extension duration, trigger type)
 const auctionConfigSchema = new mongoose.Schema(
   {
     rfqId: {

@@ -4,6 +4,7 @@ import { handleNewBid } from "../auction/auction.service.js";
 
 export const submitBidService = async (data, user) => {
 
+  // Ensure only suppliers can place bids
   if (user.role !== "supplier") {
     const error = new Error("Only suppliers can place bids");
     error.statusCode = 403;
@@ -77,6 +78,7 @@ export const submitBidService = async (data, user) => {
     supplierId: user.userId,
   }).sort({ createdAt: -1 });
 
+  // Enforce that new bids must be lower than previous bids from same supplier
   if (lastBid && totalBidAmount >= lastBid.totalBidAmount) {
     const error = new Error(
       "New bid must be lower than your previous bid"
@@ -97,5 +99,6 @@ export const submitBidService = async (data, user) => {
     validityOfQuote,
   };
 
+  // Delegate auction logic (ranking, extension) to auction engine
   return await handleNewBid(rfqId, bidPayload);
 };

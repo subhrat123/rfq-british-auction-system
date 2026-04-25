@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 
+// Extract and verify JWT token to identify authenticated user
 export const authMiddleware = (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;

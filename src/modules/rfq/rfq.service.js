@@ -1,6 +1,7 @@
 import RFQ from "./rfq.model.js";
 
 export const createRFQService = async (data, user) => {
+
     if (user.role !== "buyer") {
         const error = new Error("Only buyers can create RFQs");
         error.statusCode = 403;
@@ -29,12 +30,12 @@ export const createRFQService = async (data, user) => {
         throw error;
     }
 
+    // Ensure auction timing is logically valid (start < close < forced close)
     if (new Date(bidStartTime) >= new Date(bidCloseTime)) {
         const error = new Error("Bid start time must be before bid close time");
         error.statusCode = 400;
         throw error;
     }
-
 
     if (new Date(data.forcedBidCloseTime) <= new Date(data.bidCloseTime)) {
         const error = new Error("Forced close time must be greater than bid close time");

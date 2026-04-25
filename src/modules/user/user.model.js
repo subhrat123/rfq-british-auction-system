@@ -1,5 +1,7 @@
 import mongoose from "mongoose";
 
+// Represents system users (buyers & suppliers)
+// Used for ownership of RFQs and bids
 const userSchema = new mongoose.Schema(
   {
     name: {

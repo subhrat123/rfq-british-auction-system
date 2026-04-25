@@ -10,6 +10,7 @@ export const signupService = async ({ name, email, password, role }) => {
     throw error;
   }
 
+  // Hash password before storing to ensure security
   const hashedPassword = await bcrypt.hash(password, 10);
 
   const user = await User.create({
@@ -30,6 +31,8 @@ export const loginService = async ({ email, password }) => {
     throw error;
   }
 
+  // Validate credentials and issue JWT for authenticated access
+  
   const isMatch = await bcrypt.compare(password, user.password);
   if (!isMatch) {
     const error = new Error("Invalid credentials");

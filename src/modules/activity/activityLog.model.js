@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 
+// Tracks all auction events (bids, extensions) for transparency and audit
 const activitySchema = new mongoose.Schema(
   {
     rfqId: {

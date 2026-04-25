@@ -4,6 +4,7 @@ import {
   getRFQByIdService,
 } from "./rfq.service.js";
 
+// Handles RFQ creation and delegates business logic to service layer
 export const createRFQController = async (req, res, next) => {
   try {
     const rfq = await createRFQService(req.body, req.user);
