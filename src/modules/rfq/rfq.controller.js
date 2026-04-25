@@ -2,6 +2,7 @@ import {
   createRFQService,
   getAllRFQsService,
   getRFQByIdService,
+  getRFQDetailsService,
 } from "./rfq.service.js";
 
 // Handles RFQ creation and delegates business logic to service layer
@@ -42,6 +43,19 @@ export const getRFQController = async (req, res, next) => {
     res.status(200).json({
       message: "RFQ fetched successfully",
       data: rfq,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getRFQDetailsController = async (req, res, next) => {
+  try {
+    const data = await getRFQDetailsService(req.params.id);
+
+    res.status(200).json({
+      message: "RFQ details fetched",
+      data,
     });
   } catch (err) {
     next(err);

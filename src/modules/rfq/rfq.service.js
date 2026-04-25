@@ -1,4 +1,7 @@
 import RFQ from "./rfq.model.js";
+import Bid from "../bid/bid.model.js";
+import ActivityLog from "../activity/activity.model.js";
+import AuctionConfig from "../auction/auctionConfig.model.js";
 
 export const createRFQService = async (data, user) => {
 
@@ -59,4 +62,24 @@ export const getAllRFQsService = async () => {
 
 export const getRFQByIdService = async (id) => {
     return RFQ.findById(id).populate("buyerId", "name email");
+};
+
+export const getRFQDetailsService = async (rfqId) => {
+  const rfq = await RFQ.findById(rfqId).populate("buyerId", "name email");
+
+  if (!rfq) {
+    const error = new Error("RFQ not found");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  const bids = await Bid.find({ rfqId })
+    .populate("supplierId", "name email")
+    .sort({ rank: 1 });
+
+  const logs = await ActivityLog.find({ rfqId }).sort({ createdAt: -1 });
+
+  const config = await AuctionConfig.findOne({ rfqId });
+
+  return { rfq, bids, logs, config };
 };
