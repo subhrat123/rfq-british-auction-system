@@ -16,22 +16,28 @@ A full-stack web application that simulates a **British auction system for RFQs 
   * `bid_received`
   * `any_rank_change`
   * `l1_rank_change`
+
 * 📝 Activity Logs (bid events, time extensions)
-* 🌐 Clean Frontend UI for interaction
+* 🌐 Structured and user-friendly frontend UI
 
 ---
 
-## 📸 Screenshots
-
 ### RFQ Listing Page
-![RFQ List](./screenshots/rfq-list.png)
+![RFQ List](./images/rfq-list.png)
 
 ### RFQ Details Page
-![RFQ Details](./screenshots/rfq-details.png)
+![RFQ Details](./images/rfq-details.png)
 
 ### Bidding Flow
-![Bidding](./screenshots/bidding.png)
+![Bidding](./images/bidding.png)
 
+---
+
+## 🧠 Architecture Diagram
+
+This diagram represents the layered architecture and flow of data from frontend to database through the auction engine.
+
+![Architecture Diagram](./images/Architecture.png)
 
 ## 🧠 System Design
 
@@ -44,6 +50,21 @@ Service Layer (Business Logic)
         ↓
 Database (MongoDB)
 ```
+
+---
+
+## 🧠 Design Decisions
+
+The system is built using a REST-based architecture to ensure consistency and reliability of auction operations. 
+All state-changing actions such as bid submissions are handled through APIs with transactional guarantees.
+
+Real-time updates (e.g., live bid changes) can be integrated using WebSockets, but were intentionally not implemented 
+as they were outside the assignment scope. The system is designed in a way that such enhancements can be added easily.
+
+---
+
+## 📦 Database Schema
+![Schema](./images/schema.png)
 
 ---
 
@@ -203,7 +224,7 @@ npm run dev
 ## 💡 Key Highlights
 
 * Transaction-based bid processing (ensures consistency)
-* Real-time ranking updates
+* Dynamic ranking updates
 * Trigger-based dynamic auction extension
 * Clean modular backend architecture
 

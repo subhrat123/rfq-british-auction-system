@@ -11,13 +11,11 @@ const rfqSchema = new mongoose.Schema(
       type: String,
       required: true,
       unique: true,
-      index: true,
     },
     buyerId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
-      index: true,
     },
     pickupDate: {
       type: Date,
@@ -39,7 +37,6 @@ const rfqSchema = new mongoose.Schema(
       type: String,
       enum: ["upcoming", "active", "closed", "force_closed"],
       default: "upcoming",
-      index: true,
     },
     currentLowestBid: {
       type: Number,

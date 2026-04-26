@@ -8,7 +8,6 @@ const bidSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "RFQ",
       required: true,
-      index: true,
     },
     supplierId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -42,7 +41,6 @@ const bidSchema = new mongoose.Schema(
     totalBidAmount: {
       type: Number,
       required: true,
-      index: true,
     },
 
     transitTime: {

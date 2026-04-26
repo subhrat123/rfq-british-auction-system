@@ -8,7 +8,6 @@ const auctionConfigSchema = new mongoose.Schema(
       ref: "RFQ",
       required: true,
       unique: true,
-      index: true,
     },
 
     triggerWindowMinutes: {
