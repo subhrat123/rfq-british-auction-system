@@ -1,8 +1,11 @@
 # dependencies
 node_modules/
+frontend/node_modules/
 
 # env files (VERY IMPORTANT)
 .env
+backend/.env
+frontend/.env
 
 # logs
 logs
@@ -14,6 +17,7 @@ yarn-error.log*
 # build / dist
 dist/
 build/
+frontend/dist/
 
 # OS files
 .DS_Store
@@ -30,5 +34,5 @@ Thumbs.db
 # coverage
 coverage/
 
-# dotenv config (optional safety)
+# optional safety
 config/*.env

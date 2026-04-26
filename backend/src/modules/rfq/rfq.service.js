@@ -1,6 +1,6 @@
 import RFQ from "./rfq.model.js";
 import Bid from "../bid/bid.model.js";
-import ActivityLog from "../activity/activity.model.js";
+import ActivityLog from "../activity/activityLog.model.js";
 import AuctionConfig from "../auction/auctionConfig.model.js";
 
 export const createRFQService = async (data, user) => {
@@ -20,6 +20,7 @@ export const createRFQService = async (data, user) => {
         pickupDate,
     } = data;
 
+    // Required fields validation
     if (
         !name ||
         !referenceId ||
@@ -33,15 +34,35 @@ export const createRFQService = async (data, user) => {
         throw error;
     }
 
-    // Ensure auction timing is logically valid (start < close < forced close)
-    if (new Date(bidStartTime) >= new Date(bidCloseTime)) {
+    const start = new Date(bidStartTime);
+    const close = new Date(bidCloseTime);
+    const forcedClose = new Date(forcedBidCloseTime);
+    const now = new Date();
+
+    if (start >= close) {
         const error = new Error("Bid start time must be before bid close time");
         error.statusCode = 400;
         throw error;
     }
 
-    if (new Date(data.forcedBidCloseTime) <= new Date(data.bidCloseTime)) {
+    if (forcedClose <= close) {
         const error = new Error("Forced close time must be greater than bid close time");
+        error.statusCode = 400;
+        throw error;
+    }
+
+    // STATUS CALCULATION 
+    let status = "upcoming";
+
+    if (now >= start && now <= close) {
+        status = "active";
+    } else if (now > close) {
+        status = "closed";
+    }
+
+    const existing = await RFQ.findOne({ referenceId });
+    if (existing) {
+        const error = new Error("RFQ with this referenceId already exists");
         error.statusCode = 400;
         throw error;
     }
@@ -49,6 +70,8 @@ export const createRFQService = async (data, user) => {
     const rfq = await RFQ.create({
         ...data,
         buyerId: user.userId,
+        status,
+        isActive: status === "active",
     });
 
     return rfq;

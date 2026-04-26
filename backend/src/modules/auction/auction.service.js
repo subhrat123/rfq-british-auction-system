@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 import RFQ from "../rfq/rfq.model.js";
 import Bid from "../bid/bid.model.js";
 import AuctionConfig from "./auctionConfig.model.js";
-import ActivityLog from "../activity/activity.model.js";
+import ActivityLog from "../activity/activityLog.model.js";
 
 
 // Handles bid submission with full auction logic:

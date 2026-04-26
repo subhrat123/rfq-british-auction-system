@@ -26,14 +26,17 @@ const bidSchema = new mongoose.Schema(
     freightCharges: {
       type: Number,
       required: true,
+      min: [0, "Freight charges cannot be negative"],
     },
     originCharges: {
       type: Number,
       required: true,
+      min: [0, "Origin charges cannot be negative"],
     },
     destinationCharges: {
       type: Number,
       required: true,
+      min: [0, "Destination charges cannot be negative"],
     },
 
     totalBidAmount: {
@@ -45,6 +48,7 @@ const bidSchema = new mongoose.Schema(
     transitTime: {
       type: Number,
       required: true,
+      min: [0, "Transit time cannot be negative"],
     },
 
     validityOfQuote: {

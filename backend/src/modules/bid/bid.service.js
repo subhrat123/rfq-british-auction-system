@@ -35,6 +35,16 @@ export const submitBidService = async (data, user) => {
     throw error;
   }
 
+  if (
+    freightCharges < 0 ||
+    originCharges < 0 ||
+    destinationCharges < 0
+  ) {
+    const error = new Error("Charges cannot be negative");
+    error.statusCode = 400;
+    throw error;
+  }
+
   const totalBidAmount =
     Number(freightCharges) +
     Number(originCharges) +
