@@ -23,12 +23,6 @@ export default function Header() {
     >
       <div>
         <Link to="/">Home</Link>
-        {user?.role === "buyer" ? (
-          <>
-            {' '}
-            | <Link to="/create-rfq">Create RFQ</Link>
-          </>
-        ) : null}
       </div>
       <div>
         {user ? (
