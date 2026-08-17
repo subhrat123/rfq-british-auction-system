@@ -54,10 +54,6 @@ const bidSchema = new mongoose.Schema(
       required: true,
     },
 
-    rank: {
-      type: Number,
-      default: null,
-    },
   },
   { timestamps: true }
 );

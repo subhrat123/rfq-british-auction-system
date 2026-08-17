@@ -16,6 +16,16 @@ const activitySchema = new mongoose.Schema(
       required: true,
     },
 
+    supplierId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+
+    bidId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Bid",
+    },
+
     message: String,
     reason: String,
 

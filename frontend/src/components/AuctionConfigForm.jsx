@@ -2,7 +2,7 @@ import { useState } from "react";
 import { API_BASE } from "../utils/api";
 import { authHeaders, getUser } from "../utils/auth";
 
-export default function AuctionConfigForm({ rfqId, existingConfig, onConfigSaved }) {
+export default function AuctionConfigForm({ rfqId, existingConfig }) {
   const user = getUser();
   const [triggerType, setTriggerType] = useState("bid_received");
   const [triggerWindowMinutes, setTriggerWindowMinutes] = useState(5);
@@ -37,7 +37,6 @@ export default function AuctionConfigForm({ rfqId, existingConfig, onConfigSaved
       }
 
       setSuccess("Auction config saved.");
-      onConfigSaved?.();
     } catch (err) {
       setError(err.message);
     }
@@ -56,13 +55,6 @@ export default function AuctionConfigForm({ rfqId, existingConfig, onConfigSaved
   return (
     <div>
       <h3>Auction Config</h3>
-      <label>Trigger type</label>
-      <select value={triggerType} onChange={(e) => setTriggerType(e.target.value)}>
-        <option value="bid_received">Bid received</option>
-        <option value="any_rank_change">Any rank change</option>
-        <option value="l1_rank_change">L1 rank change</option>
-      </select>
-
       <label>Trigger window (minutes)</label>
       <input
         type="number"

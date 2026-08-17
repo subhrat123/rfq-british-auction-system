@@ -19,12 +19,6 @@ const auctionConfigSchema = new mongoose.Schema(
       type: Number,
       required: true,
     },
-
-    triggerType: {
-      type: String,
-      enum: ["bid_received", "any_rank_change", "l1_rank_change"],
-      required: true,
-    },
   },
   { timestamps: true }
 );

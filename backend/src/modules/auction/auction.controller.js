@@ -14,22 +14,9 @@ export const createAuctionConfig = async (req, res, next) => {
     if (
       !rfqId ||
       triggerWindowMinutes == null ||
-      extensionDurationMinutes == null ||
-      !triggerType
+      extensionDurationMinutes == null
     ) {
       const error = new Error("All fields are required");
-      error.statusCode = 400;
-      throw error;
-    }
-
-    const allowedTypes = [
-      "bid_received",
-      "any_rank_change",
-      "l1_rank_change",
-    ];
-
-    if (!allowedTypes.includes(triggerType)) {
-      const error = new Error("Invalid trigger type");
       error.statusCode = 400;
       throw error;
     }
@@ -53,7 +40,6 @@ export const createAuctionConfig = async (req, res, next) => {
       rfqId,
       triggerWindowMinutes,
       extensionDurationMinutes,
-      triggerType,
     });
 
     res.status(201).json({

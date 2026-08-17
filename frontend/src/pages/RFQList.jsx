@@ -13,7 +13,7 @@ export default function RFQList() {
       try {
         const res = await fetch(`${API_BASE}/rfqs`);
         const data = await res.json();
-        if (!res.ok) {
+        if (!res.ok) {  
           throw new Error(data.message || "Unable to load RFQs");
         }
         setRfqs(data.data || []);
@@ -26,7 +26,7 @@ export default function RFQList() {
   }, []);
 
   return (
-    <div className="container">
+    <div className="container" >
       <h2>RFQs</h2>
       {error ? <div style={{ color: "red" }}>{error}</div> : null}
       {user?.role === "buyer" ? (
@@ -45,12 +45,11 @@ export default function RFQList() {
             <div className="title">{r.name}</div>
             <div>Reference: {r.referenceId}</div>
             <div className="row">
-              <span>Status: {r.status}</span>
               <span>Lowest: ₹{r.currentLowestBid || "N/A"}</span>
             </div>
             <div className="row" style={{ marginTop: "8px" }}>
               <span>Pickup: {new Date(r.pickupDate).toLocaleDateString()}</span>
-              <span>Close: {new Date(r.bidCloseTime).toLocaleString()}</span>
+              <span>Close: {new Date(r.currentBidCloseTime).toLocaleString()}</span>
             </div>
             <br />
             <Link to={`/rfq/${r._id}`}>

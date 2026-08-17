@@ -29,24 +29,32 @@ const rfqSchema = new mongoose.Schema(
       type: Date,
       required: true,
     },
+    currentBidCloseTime:{
+      type: Date,
+      required: true,
+    },
     forcedBidCloseTime: {
       type: Date,
       required: true,
     },
-    status: {
-      type: String,
-      enum: ["upcoming", "active", "closed", "force_closed"],
-      default: "upcoming",
+    
+    currentLowestBidId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Bid",
+      default: null,
     },
-    currentLowestBid: {
+
+    currentLowestBidAmount: {
       type: Number,
       default: null,
     },
-    currentLowestSupplier: {
+
+    currentLowestBidSupplierId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       default: null,
     },
+
   },
   { timestamps: true }
 );

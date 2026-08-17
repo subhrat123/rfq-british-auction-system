@@ -71,28 +71,8 @@ export const submitBidService = async (data, user) => {
     throw error;
   }
 
-  if (now > rfq.bidCloseTime) {
+  if (now >= rfq.currentBidCloseTime) {
     const error = new Error("Auction already closed");
-    error.statusCode = 400;
-    throw error;
-  }
-
-  if (now > rfq.forcedBidCloseTime) {
-    const error = new Error("Auction force closed");
-    error.statusCode = 400;
-    throw error;
-  }
-
-  const lastBid = await Bid.findOne({
-    rfqId,
-    supplierId: user.userId,
-  }).sort({ createdAt: -1 });
-
-  // Enforce that new bids must be lower than previous bids from same supplier
-  if (lastBid && totalBidAmount >= lastBid.totalBidAmount) {
-    const error = new Error(
-      "New bid must be lower than your previous bid"
-    );
     error.statusCode = 400;
     throw error;
   }

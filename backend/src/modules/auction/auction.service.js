@@ -6,7 +6,6 @@ import ActivityLog from "../activity/activityLog.model.js";
 
 
 // Handles bid submission with full auction logic:
-// - ranking recalculation
 // - trigger detection
 // - auction extension
 // - activity logging
@@ -20,6 +19,7 @@ export const handleNewBid = async (rfqId, bidData) => {
 
   try {
     let result;
+    const activities = [];
 
     await session.withTransaction(async () => {
       const rfq = await RFQ.findById(rfqId).session(session);
@@ -38,99 +38,44 @@ export const handleNewBid = async (rfqId, bidData) => {
 
       const now = new Date();
 
-      if (now > rfq.forcedBidCloseTime) {
-        const error = new Error("Auction force closed");
+      if (now < rfq.bidStartTime) {
+        const error = new Error("Auction has not started yet");
         error.statusCode = 400;
         throw error;
       }
 
-      if (now > rfq.bidCloseTime) {
+      if (now >= rfq.currentBidCloseTime) {
         const error = new Error("Auction already closed");
         error.statusCode = 400;
         throw error;
       }
 
-      const previousBids = await Bid.find({ rfqId })
-        .sort({ totalBidAmount: 1 })
-        .session(session);
-
-      // Capture previous ranking state to detect rank changes
-      const previousRanks = previousBids.map((b, i) => ({
-        id: b._id.toString(),
-        rank: i + 1,
-      }));
-
-      const previousL1 = previousBids[0]?.supplierId?.toString();
+      if(rfq.currentLowestBidAmount !== null && bidData.totalBidAmount >= rfq.currentLowestBidAmount) {
+        const error = new Error("Bid amount must be lower than current lowest bid");
+        error.statusCode = 400;
+        throw error;
+      }
 
       const bidArr = await Bid.create([bidData], { session });
       const bid = bidArr[0];
+      await bid.populate("supplierId", "name email");
 
-      // Recalculate ranks since new bid can change global ordering
-      const bids = await Bid.find({ rfqId })
-        .sort({ totalBidAmount: 1 })
-        .session(session);
+      rfq.currentLowestBidId = bid._id
+      rfq.currentLowestBidAmount = bid.totalBidAmount;
+      rfq.currentLowestBidSupplierId = bid.supplierId;
 
-      let rankChanged = false;
 
-      const bulkOps = bids.map((b, index) => {
-        const prev = previousRanks.find(p => p.id === b._id.toString());
-
-        // Detect if any rank has changed after inserting new bid
-        if (!prev || prev.rank !== index + 1) {
-          rankChanged = true;
-        }
-
-        return {
-          updateOne: {
-            filter: { _id: b._id },
-            update: { rank: index + 1 },
-          },
-        };
-      });
-
-      if (bulkOps.length) {
-        await Bid.bulkWrite(bulkOps, { session });
-      }
-
-      // Detect if lowest bidder (L1) has changed
-      const newL1 = bids[0]?.supplierId?.toString();
-      const l1Changed = previousL1 && previousL1 !== newL1;
-
-      if (bids.length > 0) {
-        rfq.currentLowestBid = bids[0].totalBidAmount;
-        rfq.currentLowestSupplier = bids[0].supplierId;
-      }
-
-      // Check if current time falls within trigger window before extending auction
       const triggerTime = new Date(
-        rfq.bidCloseTime.getTime() -
+        rfq.currentBidCloseTime.getTime() -
         config.triggerWindowMinutes * 60000
       );
 
-      let shouldExtend = false;
-
       // Apply extension only if configured trigger condition is satisfied
       if (now >= triggerTime) {
-        if (config.triggerType === "bid_received") {
-          shouldExtend = true;
-        } else if (
-          config.triggerType === "any_rank_change" &&
-          rankChanged
-        ) {
-          shouldExtend = true;
-        } else if (
-          config.triggerType === "l1_rank_change" &&
-          l1Changed
-        ) {
-          shouldExtend = true;
-        }
-      }
-
-      if (shouldExtend) {
-        const prevClose = rfq.bidCloseTime;
+        const prevClose = rfq.currentBidCloseTime;
 
         let newClose = new Date(
-          rfq.bidCloseTime.getTime() +
+          rfq.currentBidCloseTime.getTime() +
           config.extensionDurationMinutes * 60000
         );
 
@@ -139,35 +84,59 @@ export const handleNewBid = async (rfqId, bidData) => {
           newClose = rfq.forcedBidCloseTime;
         }
 
-        rfq.bidCloseTime = newClose;
+        if (newClose > prevClose) {
+          rfq.currentBidCloseTime = newClose;
+        }
+
+        const extensionActivity = {
+          eventType: "time_extended",
+          reason: "Trigger window reached",
+          previousCloseTime: prevClose,
+          newCloseTime: newClose,
+          message: "Auction time extended due to trigger",
+        };
 
         // Log auction extension with reason and updated timing
         await ActivityLog.create(
           [{
             rfqId,
-            eventType: "time_extended",
-            reason: config.triggerType,
-            previousCloseTime: prevClose,
-            newCloseTime: newClose,
-            message: "Auction time extended due to trigger",
+            ...extensionActivity
           }],
           { session }
         );
+        activities.push(extensionActivity);
       }
+      
+     const bidActivity = {
+      eventType: "bid_submitted",
+      supplierId: bid.supplierId,
+      bidId: bid._id,
+      message: `New bid submitted: ₹${bid.totalBidAmount}`,
+    };
 
       // Log every bid submission for audit trail
       await ActivityLog.create(
         [{
           rfqId,
-          eventType: "bid_submitted",
-          message: "New bid submitted",
+          ...bidActivity,
         }],
         { session }
       );
 
+      activities.push(bidActivity);
+
       await rfq.save({ session });
 
-      result = bid;
+      result = {
+        bid,
+        auctionState: {
+          currentLowestBidId: rfq.currentLowestBidId,
+          currentLowestBidAmount: rfq.currentLowestBidAmount,
+          currentLowestBidSupplierId: rfq.currentLowestBidSupplierId,
+          currentBidCloseTime: rfq.currentBidCloseTime,
+        },
+        activities,
+      };
     });
 
     return result;

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { API_BASE } from "../utils/api";
 import { getToken } from "../utils/auth";
 
-export default function BidForm({ rfqId, refresh }) {
+export default function  BidForm({ rfqId }) {
     const [form, setForm] = useState({
         freight: "",
         origin: "",
@@ -48,9 +48,6 @@ export default function BidForm({ rfqId, refresh }) {
             return;
         }
 
-        if (res.ok) {
-            refresh();
-        }
     };
 
     return (

@@ -51,15 +51,6 @@ export const createRFQService = async (data, user) => {
         throw error;
     }
 
-    // STATUS CALCULATION 
-    let status = "upcoming";
-
-    if (now >= start && now <= close) {
-        status = "active";
-    } else if (now > close) {
-        status = "closed";
-    }
-
     const existing = await RFQ.findOne({ referenceId });
     if (existing) {
         const error = new Error("RFQ with this referenceId already exists");
@@ -70,8 +61,7 @@ export const createRFQService = async (data, user) => {
     const rfq = await RFQ.create({
         ...data,
         buyerId: user.userId,
-        status,
-        isActive: status === "active",
+        currentBidCloseTime: close
     });
 
     return rfq;
@@ -98,7 +88,7 @@ export const getRFQDetailsService = async (rfqId) => {
 
   const bids = await Bid.find({ rfqId })
     .populate("supplierId", "name email")
-    .sort({ rank: 1 });
+    .sort({ createdAt: -1 });
 
   const logs = await ActivityLog.find({ rfqId }).sort({ createdAt: -1 });
 
