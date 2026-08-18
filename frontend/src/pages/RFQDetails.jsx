@@ -8,21 +8,24 @@ import { socket } from "../socket/socket";
 
 export default function RFQDetails() {
   const { id } = useParams();
+
   const [rfq, setRfq] = useState(null);
   const [details, setDetails] = useState(null);
   const [activity, setActivity] = useState([]);
   const [error, setError] = useState("");
-  const [refreshToken, setRefreshToken] = useState(0);
   const [timeLeft, setTimeLeft] = useState(0);
+
   const user = getUser();
 
   const fetchRfq = async () => {
     try {
       const res = await fetch(`${API_BASE}/rfqs/${id}`);
       const result = await res.json();
+
       if (!res.ok) {
         throw new Error(result.message || "Unable to load RFQ");
       }
+
       setRfq(result.data);
     } catch (err) {
       setError(err.message);
@@ -33,9 +36,11 @@ export default function RFQDetails() {
     try {
       const res = await fetch(`${API_BASE}/rfqs/${id}/details`);
       const result = await res.json();
+
       if (!res.ok) {
         throw new Error(result.message || "Unable to load RFQ details");
       }
+
       setDetails(result.data);
     } catch (err) {
       setError(err.message);
@@ -46,21 +51,25 @@ export default function RFQDetails() {
     try {
       const res = await fetch(`${API_BASE}/activity/${id}`);
       const result = await res.json();
+
       if (!res.ok) {
         throw new Error(result.message || "Unable to load activity logs");
       }
+
       setActivity(result.data || []);
     } catch (err) {
       setError(err.message);
     }
   };
 
+  // Initial state only
   useEffect(() => {
     fetchRfq();
     fetchDetails();
     fetchActivity();
-  }, [id, refreshToken]);
+  }, [id]);
 
+  // Join RFQ-specific Socket.IO room
   useEffect(() => {
     socket.emit("join_auction", id);
 
@@ -69,40 +78,58 @@ export default function RFQDetails() {
     };
   }, [id]);
 
+  // Handle real-time bid updates
   useEffect(() => {
     const handleBidAccepted = (data) => {
       console.log("BID_ACCEPTED:", data);
 
-      setRfq((prev) => ({
-        ...prev,
-        currentLowestBidAmount: data.auctionState.currentLowestBidAmount,
-        currentLowestBidId: data.auctionState.currentLowestBidId,
-        currentLowestBidSupplierId: data.bid.supplierId._id,
-        currentBidCloseTime: data.auctionState.currentBidCloseTime,
-      }));
+      const lowestSupplierId =
+        data.bid?.supplierId?._id || data.bid?.supplierId;
+
+      setRfq((prev) => {
+        if (!prev) return prev;
+
+        return {
+          ...prev,
+          currentLowestBidAmount:
+            data.auctionState.currentLowestBidAmount,
+          currentLowestBidId:
+            data.auctionState.currentLowestBidId,
+          currentLowestBidSupplierId:
+            lowestSupplierId,
+          currentBidCloseTime:
+            data.auctionState.currentBidCloseTime,
+        };
+      });
 
       setDetails((prev) => {
         if (!prev) return prev;
 
         return {
           ...prev,
+
           rfq: {
             ...prev.rfq,
-            currentLowestBidAmount: data.auctionState.currentLowestBidAmount,
-            currentLowestBidId: data.auctionState.currentLowestBidId,
-            currentLowestBidSupplierId: data.bid.supplierId._id,
-            currentBidCloseTime: data.auctionState.currentBidCloseTime,
+            currentLowestBidAmount:
+              data.auctionState.currentLowestBidAmount,
+            currentLowestBidId:
+              data.auctionState.currentLowestBidId,
+            currentLowestBidSupplierId:
+              lowestSupplierId,
+            currentBidCloseTime:
+              data.auctionState.currentBidCloseTime,
           },
+
           bids: [data.bid, ...prev.bids],
         };
       });
 
-      setActivity((prev) => [
-        ...data.activities,
-        ...prev,
-      ]);
-
-      console.log("details after update:", details);
+      if (data.activities?.length) {
+        setActivity((prev) => [
+          ...data.activities,
+          ...prev,
+        ]);
+      }
     };
 
     socket.on("BID_ACCEPTED", handleBidAccepted);
@@ -112,12 +139,14 @@ export default function RFQDetails() {
     };
   }, []);
 
+  // Live countdown
   useEffect(() => {
     if (!rfq?.currentBidCloseTime) return;
 
     const updateTimer = () => {
       const remaining =
-        new Date(rfq.currentBidCloseTime).getTime() - Date.now();
+        new Date(rfq.currentBidCloseTime).getTime() -
+        Date.now();
 
       setTimeLeft(Math.max(0, remaining));
     };
@@ -145,97 +174,277 @@ export default function RFQDetails() {
       .join(":");
   };
 
+  const getAuctionState = () => {
+    if (!rfq) return null;
+
+    const now = Date.now();
+    const start = new Date(rfq.bidStartTime).getTime();
+    const close = new Date(rfq.currentBidCloseTime).getTime();
+
+    if (now < start) {
+      return {
+        label: "UPCOMING",
+        className: "status-upcoming",
+      };
+    }
+
+    if (now < close) {
+      return {
+        label: "LIVE",
+        className: "status-live",
+      };
+    }
+
+    return {
+      label: "CLOSED",
+      className: "status-closed",
+    };
+  };
+
   if (error) {
     return (
       <div className="container">
-        <div className="card" style={{ color: "red" }}>{error}</div>
+        <div className="error-box">{error}</div>
       </div>
     );
   }
 
-  if (!rfq || !details) return <div className="container">Loading...</div>;
+  if (!rfq || !details) {
+    return <div className="container">Loading...</div>;
+  }
+
+  const auctionState = getAuctionState();
 
   return (
-    <div className="container">
-      <div  className="card" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+    <div className="auction-page">
+
+      {/* Header */}
+      <div className="auction-header">
         <div>
-          <div className="title">{rfq.name}</div>
-          <div>Reference: {rfq.referenceId}</div>
-        </div>
-        
-        <div>
-          <div>Pickup Date: {new Date(rfq.pickupDate).toLocaleDateString()}</div>
-          <div>Bid Close: {new Date(rfq.currentBidCloseTime).toLocaleString()}</div>
-          <div>Forced Close: {new Date(rfq.forcedBidCloseTime).toLocaleString()}</div>
+          <div className="auction-title-row">
+            <h1>{rfq.name}</h1>
+
+            <span
+              className={`auction-status ${auctionState.className}`}
+            >
+              {auctionState.label}
+            </span>
+            <a href="#bid-form" className="place-bid-top-button">
+              Place a Bid ↓
+            </a>
+          </div>
+
+          <p className="reference">
+            Reference: {rfq.referenceId}
+          </p>
         </div>
       </div>
 
-      <div className="card" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div className="title">Auction Config</div>
-        <div>
-          Time Remaining:
-          {" "}
-          <strong>{formatTimeLeft(timeLeft)}</strong>
+      {/* Auction Overview */}
+      <div className="auction-overview">
+
+        <div className="lowest-bid-box">
+          <span className="overview-label">
+            Current Lowest Bid
+          </span>
+
+          <span className="lowest-bid">
+            {rfq.currentLowestBidAmount != null
+              ? `₹${rfq.currentLowestBidAmount}`
+              : "No bids yet"}
+          </span>
         </div>
+
+        <div className="timer-box">
+          <span className="overview-label">
+            Time Remaining
+          </span>
+
+          <span className="auction-timer">
+            {formatTimeLeft(timeLeft)}
+          </span>
+        </div>
+
+      </div>
+
+      {/* Auction Information */}
+      <div className="auction-info card">
+
+        <div>
+          <span className="info-label">
+            Pickup Date
+          </span>
+
+          <strong>
+            {new Date(rfq.pickupDate).toLocaleDateString()}
+          </strong>
+        </div>
+
+        <div>
+          <span className="info-label">
+            Current Close
+          </span>
+
+          <strong>
+            {new Date(
+              rfq.currentBidCloseTime
+            ).toLocaleString()}
+          </strong>
+        </div>
+
+        <div>
+          <span className="info-label">
+            Forced Close
+          </span>
+
+          <strong>
+            {new Date(
+              rfq.forcedBidCloseTime
+            ).toLocaleString()}
+          </strong>
+        </div>
+
+      </div>
+
+      {/* Auction Configuration */}
+      <div className="card">
+        <div className="section-header">
+          <h2>Auction Configuration</h2>
+        </div>
+
         <AuctionConfigForm
           rfqId={id}
           existingConfig={details.config}
         />
       </div>
 
+      {/* Bids */}
       <div className="card">
-        <div className="title">Bids</div>
+        <div className="section-header">
+          <h2>Bid History</h2>
 
-        <table width="100%">
-          <thead>
-            <tr>
-              <th>Rank</th>
-              <th>Supplier</th>
-              <th>Carrier</th>
-              <th>Amount</th>
-            </tr>
-          </thead>
+          <span className="bid-count">
+            {details.bids.length} bids
+          </span>
+        </div>
 
-          <tbody>
-            {details.bids.length === 0 ? (
-              <tr>
-                <td colSpan={4}>No bids yet.</td>
-              </tr>
-            ) : (
-              details.bids.map((b, idx) => (
-                <tr key={b._id}>
-                  <td>{idx + 1}</td>
-                  <td>{b.supplierId?.name}</td>
-                  <td>{b.carrierName}</td>
-                  <td>₹{b.totalBidAmount}</td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      <div className="card">
-        <div className="title">Activity Logs</div>
-        {activity.length === 0 ? (
-          <div>No activity logs yet.</div>
+        {details.bids.length === 0 ? (
+          <div className="empty-state">
+            No bids have been submitted yet.
+          </div>
         ) : (
-          activity.map((log) => (
-            <div key={log._id}>
-              <strong>{log.eventType}</strong> {log.reason ? `(${log.reason})` : ""} - {log.message}
-            </div>
-          ))
+          <div className="table-wrapper">
+            <table className="auction-table">
+              <thead>
+                <tr>
+                  <th>Supplier</th>
+                  <th>Carrier</th>
+                  <th>Total Amount</th>
+                  <th>Submitted</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {details.bids.map((bid) => (
+                  <tr key={bid._id}>
+                    <td>
+                      {bid.supplierId?.name || "Unknown"}
+                    </td>
+
+                    <td>
+                      {bid.carrierName}
+                    </td>
+
+                    <td className="bid-amount">
+                      ₹{bid.totalBidAmount}
+                    </td>
+
+                    <td>
+                      {new Date(
+                        bid.createdAt
+                      ).toLocaleString()}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 
+      {/* Activity */}
       <div className="card">
-        <div className="title">Place a bid</div>
+        <div className="section-header">
+          <h2>Live Activity</h2>
+
+          <span className="live-indicator">
+            ● LIVE
+          </span>
+        </div>
+
+        {activity.length === 0 ? (
+          <div className="empty-state">
+            No activity yet.
+          </div>
+        ) : (
+          <div className="activity-list">
+            {activity.map((log) => (
+              <div
+                className="activity-item"
+                key={log._id || `${log.eventType}-${log.createdAt}`}
+              >
+                <div className="activity-dot" />
+
+                <div>
+                  <strong>
+                    {log.eventType}
+                  </strong>
+
+                  <p>
+                    {log.message}
+                  </p>
+
+                  {log.reason && (
+                    <span className="activity-reason">
+                      {log.reason}
+                    </span>
+                  )}
+                </div>
+
+                {log.createdAt && (
+                  <span className="activity-time">
+                    {new Date(
+                      log.createdAt
+                    ).toLocaleTimeString()}
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Bid Form */}
+      <div id="bid-form" className="card bid-form-card">
+        <div className="section-header">
+          <div>
+            <h2>Place a Bid</h2>
+            <p>
+              Submit a quotation lower than the current
+              lowest bid.
+            </p>
+          </div>
+        </div>
+
         {user?.role === "supplier" ? (
           <BidForm rfqId={id} />
         ) : (
-          <div>Login as a supplier to place bids.</div>
+          <div className="supplier-message">
+            Login as a supplier to place a bid.
+          </div>
         )}
       </div>
+
     </div>
   );
 }
